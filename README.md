@@ -36,7 +36,7 @@ python run_experiments_detailed.py --smoke
 
 This runs the methods on J=5, T=10 with **2-second** MINLP limits. Use `--n-seeds 100` for 100 simulation seeds. Real datasets run once each. Use `--help` for dataset selection, thread controls, explicit opt-in MINLP caps and solver logs.
 
-## Domain reduction only
+## Domain reduction only - NeurIPS 2026 MLxOR Workshop Addition
 
 ```bash
 python run_experiments_detailed.py --domain-reduction-only
