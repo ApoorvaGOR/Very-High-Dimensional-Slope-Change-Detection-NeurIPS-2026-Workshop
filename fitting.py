@@ -3,9 +3,28 @@ import time
 import numpy as np
 from run_optimization_nonsparse import exact_multidimensional_slope_change
 from run_optimization_sparse import exact_sparse_multidimensional_slope_change
+from domain_reduction import DEFAULT_REFINEMENTS, domain_reduction_fit
 
 
 def solve_exact(x, Y, k=None):
+    """Fit with the polynomial-time algorithm and return original-unit coefficients."""
+    if k is None:
+        return _solve_in_normalized_coordinates(x, Y, k, exact_multidimensional_slope_change)
+    return _solve_in_normalized_coordinates(x, Y, k, exact_sparse_multidimensional_slope_change, k)
+
+
+def solve_domain_reduction(x, Y, k, refinements=DEFAULT_REFINEMENTS):
+    """Fit via midpoint bounds and bisection at the requested refinement depths."""
+    refinements = tuple(refinements)
+    if (k is None or not refinements or any(int(n) != n or n < 0 for n in refinements)
+            or tuple(sorted(set(refinements))) != refinements):
+        raise ValueError("Require k and strictly increasing nonnegative integer refinement depths")
+    return _solve_in_normalized_coordinates(
+        x, Y, k, domain_reduction_fit, k, tuple(map(int, refinements))
+    )
+
+
+def _solve_in_normalized_coordinates(x, Y, k, solver, *solver_args):
     """Preserve unweighted raw-unit SSE, returning coefficients in original units.
 
     Affine time rescaling and per-stream response translation leave the fitting
@@ -28,15 +47,13 @@ def solve_exact(x, Y, k=None):
     centered = np.ascontiguousarray(Y - offset[:, None])
     prep = time.perf_counter() - started
     t0 = time.perf_counter()
-    if k is None:
-        result = exact_multidimensional_slope_change(u, centered)
-    else:
-        result = exact_sparse_multidimensional_slope_change(u, centered, k)
+    result = solver(u, centered, *solver_args)
     call_time = time.perf_counter() - t0
     t0 = time.perf_counter()
     result["internal_breakpoint"] = result["shared_breakpoint"]
     result["shared_breakpoint"] = origin + scale * result["shared_breakpoint"]
-    result["interval_best_breakpoints"] = origin + scale * result["interval_best_breakpoints"]
+    if "interval_best_breakpoints" in result:
+        result["interval_best_breakpoints"] = origin + scale * result["interval_best_breakpoints"]
     for key in ("left_slope", "right_slope", "delta"):
         result[key] = result[key] / scale
     result["alpha"] = result["alpha"] + offset - result["left_slope"] * origin

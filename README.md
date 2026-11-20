@@ -1,6 +1,6 @@
 # Shared slope change detection
 
-Reproducible comparisons of **sparse and non-sparse continuous piecewise-linear fitting**: polynomial-time least-squares algorithms alongside a nonconvex mixed-integer benchmark. Every fitted dimension has two continuous linear segments and shares one continuously located breakpoint. Sparse experiments allow slope changes in at most `k = floor(0.20 J)` dimensions.
+Reproducible comparisons for **sparse and non-sparse continuous piecewise-linear fitting** include polynomial-time least-squares algorithms, a nonconvex mixed-integer benchmark, and iterative domain reduction for the sparse problem. Every fitted dimension has two continuous linear segments and shares one continuously located breakpoint. Sparse experiments allow slope changes in at most `k = floor(0.20 J)` dimensions by default.
 
 Companion code for **Polynomial-Time Solvability of the Multi-Dimensional Slope Change Problem**, Apoorva Narula and Santanu S. Dey. See the paper and [solver source files](#code-map) for the polynomial-time methodology. This repository implements the **squared L2/SSE experiments**.
 
@@ -21,12 +21,12 @@ The first run downloads three pinned Excel workbooks into `data/raw/` unless alr
 
 | Dataset | Non-sparse J | Sparse J and k | T and x |
 |---|---|---|---|
-| Simulated | 10, 20, 100, 1,000, 10,000, 100,000 | 10/2, 20/4, 100/20, 1,000/200 | 100; observation indices 0-99 |
+| Simulated | 10, 20, 100, 1,000, 10,000, 100,000 | 10/2, 20/4, 100/20, 1,000/200, 10,000/2,000, 100,000/20,000 | 100; observation indices 0-99 |
 | ERA5 t2m | 40,401 | 40,401 / 8,080 | 26; years 2000-2025 inclusive |
 | HoloAssist | 1,092 | 1,092 / 218 | 240; original `clip_time_s` |
 | NASA C-MAPSS FD001 | 21 | 21 / 4 | 192; training engine 1 operating cycles |
 
-All **16 cases** run the polynomial-time method and attempt the corresponding MINLP on identical raw data. Every MINLP has **TimeLimit = 2,000 seconds**, with no default dimension cap. This is the optimizer limit: construction, bounds and output writing take additional time. A full run can take many hours and substantial memory. The 40,401-dimensional ERA5 sparse run uses the supplied pairwise-crossing method and is particularly demanding. No approximation, temporal subsampling or dimension reduction is silently substituted.
+All **18 cases** run the polynomial-time method and attempt the corresponding MINLP on identical raw data. The nine sparse cases also run domain reduction. Every MINLP has **TimeLimit = 10,000 seconds**, with no default dimension cap. Construction, bounds and output writing take additional time. A full run can take many hours and substantial memory. The largest sparse cases are particularly demanding for the exact pairwise-crossing algorithm.
 
 For a short installation check:
 
@@ -34,7 +34,18 @@ For a short installation check:
 python run_experiments_detailed.py --smoke
 ```
 
-This tests both methods on J=5, T=10 with **2-second** MINLP limits. It is labeled separately from research results. To run 100 simulation seeds, use `--n-seeds 100`; real datasets still run once each. Use `--help` for dataset selection, thread controls, explicit opt-in MINLP caps and solver logs.
+This runs the methods on J=5, T=10 with **2-second** MINLP limits. Use `--n-seeds 100` for 100 simulation seeds. Real datasets run once each. Use `--help` for dataset selection, thread controls, explicit opt-in MINLP caps and solver logs.
+
+## Domain reduction only
+
+```bash
+python run_experiments_detailed.py --domain-reduction-only
+python run_experiments_detailed.py --domain-reduction-only --sparse-fraction 0.10
+```
+
+Each command runs all six simulated sizes plus ERA5, HoloAssist, and NASA C-MAPSS. The runner defaults to one thread for Numba, numerical libraries, and Gurobi. `--threads` and `--minlp-threads` control these separately. Use `--skip-domain-reduction` to run the original experiment matrix or resume a run created before this method was added.
+
+The implementation follows Section 2 and Appendix A of the workshop paper. It evaluates midpoint fits, bounds the gain over each time interval using per-dimension maxima, and bisects intervals that can still improve the incumbent. The **Domain reduction** worksheet and CSV record feasible SSE, a numerical lower bound on SSE, interval counts, and cumulative search time after 1, 4, and 8 bisection rounds. Search times include preprocessing and exclude the separately reported one-time Numba warmup. Final solver time also includes recovering the fit. Final coefficients and checkpoint arrays are saved under `domain_reduction_fits/`.
 
 ## Datasets at a glance
 
@@ -108,6 +119,7 @@ Tests compare small problems with exhaustive support enumeration, independent di
 | `run_optimization_nonsparse.py` | Supplied non-sparse polynomial-time SSE algorithm |
 | `run_optimization_sparse.py` | Supplied sparse polynomial-time SSE algorithm |
 | `fitting.py` | Numerically stable coordinate adapter; returns original-unit coefficients |
+| `domain_reduction.py` | Sparse interval gain bounds, midpoint incumbents, pruning, and refinement |
 | `minlp_benchmark.py` | Appendix C bounded Gurobi MINLP benchmark |
 | `minlp_worker.py` | Isolated solver process with per-case error reporting |
 | `datasets.py`, `data/sources.json` | Strict workbook adapters, pinned downloads and checksums |

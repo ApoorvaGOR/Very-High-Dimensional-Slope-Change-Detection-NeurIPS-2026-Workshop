@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 from numba import set_num_threads
 from threadpoolctl import threadpool_limits
-from fitting import solve_exact, fitted_values
+from fitting import solve_domain_reduction, solve_exact, fitted_values
 from minlp_benchmark import parameter_bounds
 
 set_num_threads(1)
@@ -39,6 +39,35 @@ def oracle(x,Y,k):
 
 
 class MethodologyTests(unittest.TestCase):
+    def test_domain_reduction_bounds_and_recovered_fit(self):
+        x = 2000 + np.array([0., 0., 1., 2., 2., 3.5, 6., 7., 7.])
+        rng = np.random.default_rng(18)
+        Y = np.vstack((rng.normal(size=(4, len(x))), np.ones(len(x)))) + 1000
+        for k in (0, 1, 2, len(Y)):
+            with self.subTest(k=k):
+                result = solve_domain_reduction(x, Y, k, (0, 1, 4, 8))
+                optimum = oracle(x, Y - Y.mean(axis=1, keepdims=True), k)
+                feasible = result["refinement_feasible_SSE"]
+                lower = result["refinement_lower_bound_SSE"]
+                self.assertTrue(np.all(lower <= optimum + 1e-8))
+                self.assertTrue(np.all(feasible >= optimum - 1e-8))
+                self.assertTrue(np.all(np.diff(feasible) <= 0))
+                self.assertTrue(np.all(np.diff(result["refinement_search_seconds"]) >= 0))
+                self.assertAlmostEqual(result["feasible_loss"], feasible[-1], places=8)
+                self.assertAlmostEqual(result["feasible_loss"], np.sum((Y - fitted_values(x, result))**2), places=8)
+                self.assertLessEqual(np.count_nonzero(result["delta"]), k)
+                self.assertLessEqual(feasible[-1] - optimum, 0.005)
+
+    def test_domain_reduction_refines_noiseless_knot(self):
+        x = np.arange(12.)
+        z = 4.37
+        Y = np.vstack((1 + .2*x + 2*np.maximum(0, x-z), 2 - .3*x))
+        result = solve_domain_reduction(x, Y, 1)
+        self.assertLess(abs(result["shared_breakpoint"] - z), 2**-8)
+        self.assertLess(result["feasible_loss"], 1e-5)
+        self.assertGreater(result["refinement_feasible_SSE"][0], result["refinement_feasible_SSE"][-1])
+        self.assertLess(result["refinement_intervals_retained"][-1], len(x) - 3)
+
     def test_exhaustive_support_oracle(self):
         for seed in range(5):
             rng=np.random.default_rng(seed)

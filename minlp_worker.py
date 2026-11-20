@@ -24,7 +24,8 @@ def run_isolated(input_path,bounds_path,result_path,solution_path,log_path,k,
         command.append('--console-log')
     started=time.perf_counter()
     env=os.environ.copy()
-    for name in ['OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS']:
+    for name in ['NUMBA_NUM_THREADS','OMP_NUM_THREADS','OPENBLAS_NUM_THREADS',
+                 'MKL_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS']:
         env[name]=str(threads)
     with output_path.open('w') as output:
         completed=subprocess.run(command,stdout=None if console_log else output,
