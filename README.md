@@ -2,7 +2,8 @@
 
 Reproducible comparisons for **sparse and non-sparse continuous piecewise-linear fitting** include polynomial-time least-squares algorithms, a nonconvex mixed-integer benchmark, and iterative domain reduction for the sparse problem. Every fitted dimension has two continuous linear segments and shares one continuously located breakpoint. Sparse experiments allow slope changes in at most `k = floor(0.20 J)` dimensions by default.
 
-Companion code for **Polynomial-Time Solvability of the Multi-Dimensional Slope Change Problem**, Apoorva Narula and Santanu S. Dey. See the paper and [solver source files](#code-map) for the polynomial-time methodology. This repository implements the **squared L2/SSE experiments**.
+
+Companion code for **Polynomial-Time Solvability of the Multi-Dimensional Slope Change Problem**, Apoorva Narula and Santanu S. Dey. See the [paper](https://arxiv.org/abs/2611.18547) and [solver source files](#code-map) for the polynomial-time methodology. This repository implements the **squared L2/SSE experiments**.
 
 ## Run everything
 
