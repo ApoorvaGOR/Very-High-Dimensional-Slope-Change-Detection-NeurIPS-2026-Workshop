@@ -1,0 +1,35 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.nbc
+*.nbi
+.DS_Store
+.pytest_cache/
+.idea/
+.vscode/
+*.log
+gurobi.lic
+.env
+data/raw/
+validation/runs/
+tmp/
+dist/
+*.egg-info/
+build/
+# Ignore everything inside experiment runs
+/experiment_results_detailed/runs/**
+
+# Allow run directories to be traversed
+!/experiment_results_detailed/runs/*/
+
+# Allow final summary Excel files
+!/experiment_results_detailed/runs/*/final_summary.xlsx
+
+# Allow runtime workbooks directories
+!/experiment_results_detailed/runs/*/runtime_workbooks/
+
+# Allow everything inside runtime workbooks
+!/experiment_results_detailed/runs/*/runtime_workbooks/**
+
+**/.DS_Store
